@@ -1,0 +1,32 @@
+{{define "content"}}
+<table>
+  <tr>
+    <th>date</th>
+    <th>status</th>
+    <th>name</th>
+  </tr>
+
+  {{ range .Battles }}
+  <tr>
+    <td> {{.CreatedAt.Format "2006-01-02"}} </td>
+    <td>
+      {{ if .ClosedAt.IsZero }}
+      OPEN
+      {{ else }}
+      CLOSED
+      {{ end }}
+
+    </td>
+
+    <td>
+      {{ if .ClosedAt.IsZero }}
+      <a href="/battles/vote/{{ .Name }}/">{{ .Name }}</a>
+      {{ else }}
+      <a href="/battles/results/{{ .Name }}/">{{ .Name }}</a>
+      {{ end }}
+    </td>
+    {{ end }}
+  </tr>
+
+</table>
+{{ end }}

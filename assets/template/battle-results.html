@@ -1,0 +1,35 @@
+{{define "content"}}
+<a class="icon" href="/battles/">↢ battles</a>
+{{ if .Config.Unrestricted }}<a href="/battles/vote/{{ .Battle.Name }}/">vote</a>{{ end }}
+<h1>Beat battle results: {{ .Battle.Name }}</h1>
+
+<li> Number of voters {{ .NumVoters }} </li>
+<li><a href="/zip/{{ .Battle.Name }}/">Download zip file</a><br /></li>
+
+<div id="controls">
+  <input type="checkbox" id="autoplay" checked /> auto advance<br />
+  <input type="range" min="0" max="30" value="10" class="slider" id="delay" /> delay: <span id="delay-value">10</span><br />
+</div>
+
+{{ range $placeIdx, $entries := .TopPlaces }}
+<h1>Place #{{ add 1 $placeIdx }}</h1>
+{{ range $idx, $entry := $entries}}
+<div class="entry" idx="{{$placeIdx}}-{{ $idx }}">
+  <h2><strong>{{ .Author }} — {{ .Title }}</strong> {{ if $.Config.ShowScores }}(score: {{ index $.SumScores .ID }}){{ end }}</h2>
+  <audio src="/dl/{{ $.Battle.Name }}/{{ .ID }}" controls preload="{{if eq $idx  0 }}auto{{else}}none{{end}}"  idx="{{$placeIdx}}-{{ $idx }}"></audio>
+</div>
+{{ end }}
+
+{{ end }}
+
+<h1>Rest</h1>
+{{ range $idx, $entry := .Rest }}
+<div class="entry" idx="{{ $idx }}">
+  <h2><strong>{{ .Author }} — {{ .Title }}</strong> {{ if $.Config.ShowScores }}(score: {{ index $.SumScores .ID }}){{ end }}</h2>
+  <audio src="/dl/{{ $.Battle.Name }}/{{ .ID }}" controls preload="{{if eq $idx  0 }}auto{{else}}none{{end}}"  idx="{{ $idx }}"></audio>
+</div>
+{{ else }}
+<strong>no entries</strong>
+{{ end }}
+<script src='/{{ static "static/player.js" }}'></script>
+{{end}}

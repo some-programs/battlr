@@ -1,0 +1,15 @@
+{
+  "files": {
+    "include": ["assets/**/*.js"]
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noRedundantUseStrict": "off"
+      }
+    }
+  },
+  "formatter": {
+    "indentStyle": "space"
+  }
+}

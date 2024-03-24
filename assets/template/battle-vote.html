@@ -1,0 +1,33 @@
+{{define "content"}}
+<a class="icon" href="/battles/">↢ battles</a>
+{{ if .Config.Unrestricted }}<a href="/battles/results/{{ .Battle.Name }}/">results</a>{{ end }}
+<h1>Beat battle voting form: {{ .Battle.Name }}</h1>
+<div id="controls">
+  <input type="checkbox" id="toggle-notes"/> personal notepad<br />
+  <input type="checkbox" id="autoplay" checked /> auto advance<br />
+  <input type="range" min="0" max="30" value="10" class="slider" id="delay" /> delay: <span id="delay-value">10</span><br />
+</div>
+<button battle="{{ .Battle.Name }}" class="unvote button-1">clear my votes</button><br />
+{{ range $idx, $entry := .Battle.Entries }}
+<div class="entry" idx="{{ $idx }}">
+  <h2>#{{ add $idx 1 }}: <strong>{{ .Title }}</strong></h2>
+  <audio src="/dl/{{ $.Battle.Name }}/{{ .ID }}" controls preload="{{if eq $idx  0 }}auto{{else}}none{{end}}" idx="{{ $idx }}"></audio>
+  <h3 class="notes hidden">VOTING</h3>
+  <div>
+    <button class="vote vote1 {{ voteclass $.Votes.Scores .ID 1}}" battle="{{ $.Battle.Name }}" entry="{{ .ID }}" score="1"></button>
+    <button class="vote vote2 {{ voteclass $.Votes.Scores .ID 2}}" battle="{{ $.Battle.Name }}" entry="{{ .ID }}" score="2"></button>
+    <button class="vote vote3 {{ voteclass $.Votes.Scores .ID 3}}" battle="{{ $.Battle.Name }}" entry="{{ .ID }}" score="3"></button>
+  </div>
+  <div class="notes hidden">
+    <h3>PERSONAL NOTES (not sent)</h3>
+    <textarea rows="10"></textarea>
+  </div>
+</div>
+
+{{ else }}
+<strong>no entries</strong>
+{{ end }}
+
+<script src='/{{ static "static/vote.js" }}'></script>
+<script src='/{{ static "static/player.js" }}'></script>
+{{end}}

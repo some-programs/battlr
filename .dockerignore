@@ -1,8 +1,6 @@
-*.mp3
-*.wav
-*.ogg
-*.flac
+/.git/
 /battles/
 *.db
 /battlr
 /battlr.exe
+/.gitignore
