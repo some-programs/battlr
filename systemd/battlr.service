@@ -1,0 +1,22 @@
+[Unit]
+Description=battlr service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+DynamicUser=yes
+ProtectHome=yes
+TimeoutStopSec=30
+Environment=BATTLR_DB=/var/lib/battlr/battlr.db
+Environment=BATTLR_CONFIG=/etc/battlr/config
+ExecStart=/usr/local/bin/battlr
+
+LogsDirectory=battlr
+StateDirectory=battlr
+ConfigurationDirectory=battlr
+
+[Install]
+WantedBy=multi-user.target
