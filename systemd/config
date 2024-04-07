@@ -2,5 +2,5 @@
 # run battlr -h to see available config flags
 
 dir /tmp/path/to/battles/root/
-# api_key somesecretkey
+# api-key somesecretkey
 
