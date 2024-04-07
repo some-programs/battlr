@@ -61,7 +61,8 @@ func main() {
 	fsc := scanner.FSScanner{Fsys: rootFsys}
 	battles, err := scanner.GetAllBattles(fsc.GetBattleNames, fsc.GetBattle)
 	if err != nil {
-		panic(err)
+		slog.Error("error reading battles from directory", "dir", flags.Dir, "err", err)
+		os.Exit(1)
 	}
 	for _, b := range battles {
 		if err := db.UpdateBattle(b); err != nil {
