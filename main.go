@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log/slog"
 	"net/http"
@@ -41,11 +42,17 @@ func main() {
 
 	flags.Register(flag.CommandLine)
 
-	ff.Parse(flag.CommandLine, os.Args[1:],
+	if err := ff.Parse(flag.CommandLine, os.Args[1:],
 		ff.WithEnvVarPrefix("BATTLR"),
 		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(ff.PlainParser),
-	)
+	); err != nil {
+		if !errors.Is(err, flag.ErrHelp) {
+			panic(err)
+		}
+
+		os.Exit(1)
+	}
 
 	{
 		f := flags
