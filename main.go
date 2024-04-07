@@ -43,7 +43,7 @@ func main() {
 
 	ff.Parse(flag.CommandLine, os.Args[1:],
 		ff.WithEnvVarPrefix("BATTLR"),
-		ff.WithConfigFile("config"),
+		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(ff.PlainParser),
 	)
 
