@@ -31,8 +31,8 @@ func (f *Flags) Register(fs *flag.FlagSet) {
 	fs.BoolVar(&f.Unrestricted, "unrestricted", false, "always allow voting and results")
 	fs.BoolVar(&f.ShowScores, "show_scores", false, "show the score numbers in results")
 	fs.BoolVar(&f.FullResultsOrder, "full_results_order", false, "show full ordered results")
-	fs.StringVar(&f.Config, "config", "", "Config file")
 	fs.StringVar(&f.Listen, "listen", ":8899", "http server listener")
+	fs.StringVar(&f.Config, "config", "", "Config file")
 }
 
 func main() {
@@ -46,6 +46,14 @@ func main() {
 		ff.WithConfigFileFlag("config"),
 		ff.WithConfigFileParser(ff.PlainParser),
 	)
+
+	{
+		f := flags
+		if f.APIKey != "" {
+			f.APIKey = "[redacted]"
+		}
+		slog.Info("config", "flags", f)
+	}
 
 	boltdb, err := bolt.Open(flags.DB, 0600, nil)
 	if err != nil {
