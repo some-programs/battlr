@@ -309,7 +309,12 @@ func (s *Server) VoteForm() AppHandler {
 		}
 
 		shuffleSeedStr := r.URL.Query().Get("shuffle")
-		if shuffleSeedStr != "" {
+
+		if shuffleSeedStr == "" {
+			shuffleSeedStr = "default shuffle order"
+		}
+
+		{
 			h := sha256.New()
 			h.Write([]byte(shuffleSeedStr))
 			sum := h.Sum(nil)
