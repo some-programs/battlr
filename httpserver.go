@@ -90,6 +90,7 @@ func (server *Server) RegisterHandlers(h *http.ServeMux, apiKey string, battlesF
 	h.Handle("/api/vote/", ClientIDMiddleware()(server.Vote()))
 	h.Handle("/api/unvote/", ClientIDMiddleware()(server.UnVote()))
 
+	h.Handle("/api/battles/{name}/", authMiddleware(server.GetBattleData()))
 	h.Handle("/api/scan/", authMiddleware(server.Scan()))
 	h.Handle("/api/open/{name}/", authMiddleware(server.OpenBattle()))
 	h.Handle("/api/close/{name}/", authMiddleware(server.CloseBattle()))
@@ -589,6 +590,43 @@ func (s *Server) Scan() AppHandler {
 		if len(errs) > 0 {
 			return errors.Join(errs...)
 		}
+		return nil
+	}
+}
+
+// BattleDataResponse .
+type BattleDataResponse struct {
+	Battle    db.Battle
+	Votes     []db.Votes
+	ScoresSum map[string]int
+}
+
+func (s *Server) GetBattleData() AppHandler {
+
+	return func(w http.ResponseWriter, r *http.Request) error {
+		ctx := r.Context()
+		name := r.PathValue("name")
+		battle, err := s.DB.GetBattle(name)
+		if err != nil {
+			return err
+		}
+		if battle == nil {
+			return db.NotFound
+		}
+
+		allVotes, err := s.DB.GetAllVotes(name)
+		if err != nil {
+			return err
+		}
+
+		sumScores := db.SumScores(allVotes)
+		battle.Entries.SortByScore(sumScores)
+		WriteJSONResponse(ctx, w, http.StatusOK,
+			BattleDataResponse{
+				Votes:     allVotes,
+				Battle:    *battle,
+				ScoresSum: sumScores,
+			})
 		return nil
 	}
 }
