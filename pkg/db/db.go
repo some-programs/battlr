@@ -42,6 +42,18 @@ func (e Entries) SortByID() {
 	})
 }
 
+func (e Entries) SortByName() {
+	slices.SortFunc(e, func(a, b Entry) int {
+		if v := cmp.Compare(a.Author, b.Author); v != 0 {
+			return v
+		}
+		if v := cmp.Compare(a.Title, b.Title); v != 0 {
+			return v
+		}
+		return cmp.Compare(a.ID, b.ID)
+	})
+}
+
 func (e Entries) Shuffle() {
 
 	rnd := rand.New(rand.NewChaCha8([32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0}))
@@ -83,9 +95,8 @@ func (e Entries) Places(scoreMap ScoreMap) Places {
 		}
 
 	}
-	currentPlace.SortByID()
-	currentPlace.Shuffle()
 
+	currentPlace.SortByName()
 	topPlaces = append(topPlaces, currentPlace)
 
 	return topPlaces

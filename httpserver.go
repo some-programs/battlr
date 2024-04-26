@@ -229,6 +229,8 @@ func (s *Server) Results() AppHandler {
 		} else {
 			battle.Entries.Shuffle()
 		}
+		rest := topPlaces.Diff(battle.Entries)
+		rest.SortByName()
 		templateData := struct {
 			Title     string
 			Battle    db.Battle
@@ -244,7 +246,7 @@ func (s *Server) Results() AppHandler {
 			SumScores: sumScores,
 			Config:    s.ServerConfig,
 			TopPlaces: topPlaces,
-			Rest:      topPlaces.Diff(battle.Entries),
+			Rest:      rest,
 		}
 
 		w.WriteHeader(http.StatusOK)
