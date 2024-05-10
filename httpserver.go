@@ -94,6 +94,8 @@ func (server *Server) RegisterHandlers(h *http.ServeMux, apiKey string, battlesF
 	h.Handle("/api/scan/", authMiddleware(server.Scan()))
 	h.Handle("/api/open/{name}/", authMiddleware(server.OpenBattle()))
 	h.Handle("/api/close/{name}/", authMiddleware(server.CloseBattle()))
+	h.Handle("/api/hide/{name}/", authMiddleware(server.HideBattle()))
+	h.Handle("/api/unhide/{name}/", authMiddleware(server.UnhideBattle()))
 	h.Handle("/dl/", http.StripPrefix("/dl/", server.ResolveFilename(http.FileServerFS(battlesFsys))))
 
 	h.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -151,10 +153,18 @@ func (s *Server) Index() AppHandler {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) error {
-		battles, err := s.DB.GetAllBattles()
+		allBattles, err := s.DB.GetAllBattles()
 		if err != nil {
 			slog.Error("err", "err", err)
 			return err
+		}
+
+		var battles []db.Battle
+		for _, b := range allBattles {
+			if b.Hidden {
+				continue
+			}
+			battles = append(battles, b)
 		}
 
 		templateData := struct {
@@ -202,6 +212,9 @@ func (s *Server) Results() AppHandler {
 		}
 
 		if !s.Unrestricted {
+			if battle.Hidden {
+				return db.NotFound
+			}
 			if battle.ClosedAt.IsZero() {
 				return s.ErrorPage(r.Context(), w, r, "cannot view results while voting is open", "/battles/")
 			}
@@ -306,6 +319,9 @@ func (s *Server) VoteForm() AppHandler {
 		}
 
 		if !s.Unrestricted {
+			if battle.Hidden {
+				return db.NotFound
+			}
 			if !battle.ClosedAt.IsZero() {
 				return errors.New("voting is closed")
 			}
@@ -415,6 +431,9 @@ func (s *Server) Vote() AppHandler {
 		}
 
 		if !s.Unrestricted {
+			if battle.Hidden {
+				return db.NotFound
+			}
 			if !battle.ClosedAt.IsZero() {
 				return s.ErrorPage(r.Context(), w, r, "voting is closed", "/battles/")
 			}
@@ -489,6 +508,9 @@ func (s *Server) Zip() AppHandler {
 		}
 
 		if !s.Unrestricted {
+			if battle.Hidden {
+				return db.NotFound
+			}
 			if battle.IsVotingOpen() {
 				w.WriteHeader(http.StatusForbidden)
 				return nil
@@ -570,6 +592,36 @@ func (s *Server) OpenBattle() AppHandler {
 			return err
 		}
 		return s.DB.OpenBattle(battleName)
+	}
+}
+
+func (s *Server) HideBattle() AppHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		battleName := r.PathValue("name")
+		_, err := s.DB.GetBattle(battleName)
+		if err != nil {
+			if err == db.NotFound {
+				w.WriteHeader(http.StatusNotFound)
+				return nil
+			}
+			return err
+		}
+		return s.DB.HideBattle(battleName)
+	}
+}
+
+func (s *Server) UnhideBattle() AppHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		battleName := r.PathValue("name")
+		_, err := s.DB.GetBattle(battleName)
+		if err != nil {
+			if err == db.NotFound {
+				w.WriteHeader(http.StatusNotFound)
+				return nil
+			}
+			return err
+		}
+		return s.DB.UnhideBattle(battleName)
 	}
 }
 

@@ -55,7 +55,6 @@ func (e Entries) SortByName() {
 }
 
 func (e Entries) Shuffle() {
-
 	rnd := rand.New(rand.NewChaCha8([32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0}))
 	rnd.Shuffle(len(e), func(i, j int) {
 		e[i], e[j] = e[j], e[i]
@@ -128,10 +127,11 @@ type Battle struct {
 	Entries   Entries   `yaml:"entries"`
 	ClosedAt  time.Time `yaml:"closed_at"`
 	CreatedAt time.Time `yaml:"crated_at"`
+	Hidden    bool      `yaml:"hidden"`
 }
 
 func (d Battle) IsVotingOpen() bool {
-	return d.ClosedAt.IsZero()
+	return !d.Hidden && d.ClosedAt.IsZero()
 }
 
 func (d *Battle) GetEntryByID(id string) (Entry, bool) {
@@ -224,6 +224,45 @@ func (db *DB) OpenBattle(battleName string) error {
 	return nil
 }
 
+func (db *DB) HideBattle(battleName string) error {
+	err := db.BoltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(battlesBucketName))
+		if bucket == nil {
+			return NotFound
+		}
+		battle, err := getBattle(bucket, battleName)
+		if err != nil {
+			return err
+		}
+		battle.Hidden = true
+		return putBattle(bucket, *battle)
+
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (db *DB) UnhideBattle(battleName string) error {
+	err := db.BoltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(battlesBucketName))
+		if bucket == nil {
+			return NotFound
+		}
+		battle, err := getBattle(bucket, battleName)
+		if err != nil {
+			return err
+		}
+		battle.Hidden = false
+		return putBattle(bucket, *battle)
+
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *DB) CloseBattle(battleName string) error {
 	err := db.BoltDB.Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(battlesBucketName))
@@ -280,6 +319,7 @@ func (db *DB) UpdateBattle(fsBattle scanner.Battle) error {
 		newBattle := Battle{
 			Name:      fsBattle.Name,
 			CreatedAt: time.Now(),
+			Hidden:    true,
 		}
 
 		var oldBattle Battle
@@ -288,6 +328,7 @@ func (db *DB) UpdateBattle(fsBattle scanner.Battle) error {
 			if err := yaml.Unmarshal(data, &oldBattle); err != nil {
 				return err
 			}
+			newBattle.Hidden = oldBattle.Hidden
 			newBattle.CreatedAt = oldBattle.CreatedAt
 			newBattle.ClosedAt = oldBattle.ClosedAt
 		}
