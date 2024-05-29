@@ -11,7 +11,6 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"log"
 	"log/slog"
 	"math/rand/v2"
 	"net/http"
@@ -21,7 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/some-programs/battlr/assets"
 	"github.com/some-programs/battlr/pkg/db"
 	"github.com/some-programs/battlr/pkg/scanner"
@@ -685,11 +685,6 @@ func (s *Server) GetBattleData() AppHandler {
 	}
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  10 * 1024,
-	WriteBufferSize: 10 * 1024,
-}
-
 const (
 	pongWait   = time.Minute
 	pingPeriod = (pongWait * 9) / 10
@@ -697,6 +692,7 @@ const (
 )
 
 func (s *Server) battleEvents() AppHandler {
+
 	return func(w http.ResponseWriter, r *http.Request) error {
 		ctx, cancel := context.WithCancel(r.Context())
 		defer cancel()
@@ -714,49 +710,28 @@ func (s *Server) battleEvents() AppHandler {
 			return nil
 		}
 
-		ws, err := upgrader.Upgrade(w, r, nil)
+		conn, _, _, err := ws.UpgradeHTTP(r, w)
 		if err != nil {
-			log.Println(err)
-			return err
+			return fmt.Errorf(": %w", err)
 		}
-		defer ws.Close()
-
-		ws.SetPongHandler(func(string) error {
-			ws.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
-		ws.SetReadDeadline(time.Now().Add(pongWait))
 
 		grp, ctx := errgroup.WithContext(ctx)
 
 		grp.Go(func() error {
+
+			defer conn.Close()
+
 			for {
-				// read must be called to get pong messages handeled
-				messageType, p, err := ws.ReadMessage()
+				msg, op, err := wsutil.ReadClientData(conn)
 				if err != nil {
-					slog.Warn("read message", "err", err)
-					return err
+					return fmt.Errorf(": %w", err)
 				}
-				_ = messageType
-				_ = p
+				err = wsutil.WriteServerMessage(conn, op, msg)
+				if err != nil {
+					return fmt.Errorf(": %w", err)
+				}
 			}
 			return nil
-		})
-
-		grp.Go(func() error {
-			pingTicker := time.NewTicker(pingPeriod)
-			defer pingTicker.Stop()
-			for {
-				select {
-				case <-pingTicker.C:
-					err := ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(writeWait))
-					if err != nil {
-						slog.Warn("write ping message", "err", err)
-						return err
-					}
-				}
-			}
-
 		})
 
 		if err := grp.Wait(); err != nil {
